@@ -1,15 +1,15 @@
 services:
-  - type: web
+    - type: web
     name: secretaria-ia-final
     env: node
     plan: free
     rootDir: backend
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: npm install dotenv express cors jsonwebtoken bcryptjs sqlite3 stripe
+    startCommand: node server.js
     envVars:
-      - key: JWT_SECRET
+            - key: JWT_SECRET
         generateValue: true
-      - key: BASE_URL
-        value: https://secretaria-ia-final.onrender.com
-      - key: PORT
+            - key: BASE_URL
+        value: https://secretaria-ia-final-6xca.onrender.com
+            - key: PORT
         value: 3000
