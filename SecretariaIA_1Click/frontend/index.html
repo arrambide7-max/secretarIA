@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Secretaria IA</title><style>*{box-sizing:border-box;font-family:system-ui}body{margin:0;background:#f6f5fa} .card{background:#fff;padding:16px;margin:12px;border-radius:14px} .btn{background:#7C3AED;color:#fff;border:none;padding:12px;width:100%;border-radius:10px;margin-top:8px} input,textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin:6px 0} .paywall{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px;text-align:center} .hidden{display:none}</style></head><body>
+<div id="paywall" class="paywall hidden"><h2>Suscripción expirada</h2><p>Para seguir usando tu secretaria, renueva por $299 MXN/mes</p><button class="btn" onclick="window.open(STRIPE_LINK)">Pagar ahora</button></div>
+<div id="app">
+  <div id="login" class="card"><h3>Entrar</h3><input id="email" placeholder="email"><input id="pass" type="password" placeholder="contraseña"><button class="btn" onclick="login()">Entrar</button><p><a href="#" onclick="showSignup()">Crear cuenta</a></p></div>
+  <div id="signup" class="card hidden"><h3>Crear cuenta</h3><input id="s_email" placeholder="email"><input id="s_pass" type="password" placeholder="contraseña"><input id="s_neg" placeholder="Nombre negocio"><button class="btn" onclick="signup()">Crear y pagar</button></div>
+  <div id="main" class="hidden">
+    <div class="card"><h3>Entrena tu IA</h3><textarea id="train" placeholder="Vendo pasteles $350, pido 50% anticipo"></textarea><input type="file" id="imgs" multiple accept="image/*"><button class="btn" onclick="entrenar()">Guardar</button></div>
+    <div class="card"><button class="btn" onclick="conectarWA()">Conectar WhatsApp Business</button></div>
+    <div id="agenda" class="card">Agenda aquí</div>
+  </div>
+</div>
+<script>
+let token='', STRIPE_LINK='https://buy.stripe.com/dRmbJ2giG7MwffZ4UQ5sA01';
+function show(el){document.querySelectorAll('#app>div').forEach(d=>d.classList.add('hidden'));el.classList.remove('hidden')}
+function showSignup(){show(signup)}
+async function signup(){
+  const r=await fetch('/api/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:s_email.value,password:s_pass.value,negocio:s_neg.value})});
+  const d=await r.json(); if(d.error) return alert(d.error);
+  token=d.token; localStorage.token=token; window.open(d.stripe_link+'?client_reference_id='+jwt().id,'_blank');
+}
+async function login(){
+  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.value,password:pass.value})});
+  const d=await r.json(); if(d.error) return alert(d.error);
+  if(!d.active){ paywall.classList.remove('hidden'); return; }
+  token=d.token; localStorage.token=token; show(main);
+}
+function jwt(){return JSON.parse(atob(token.split('.')[1]))}
+async function entrenar(){
+  const imagenes=[]; 
+  for(let f of imgs.files){ imagenes.push({nombre:f.name.split('.')[0],precio:0,base64:await toBase64(f)}) }
+  await fetch('/api/train',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({texto:train.value,imagenes})});
+  alert('Guardado');
+}
+function toBase64(file){return new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(',')[1]);fr.readAsDataURL(file)})}
+function conectarWA(){ alert('Aquí abre Embedded Signup de Meta. Por ahora pega tu token manual.'); }
+if(localStorage.token){ token=localStorage.token; fetch('/api/me',{headers:{'Authorization':'Bearer '+token}}).then(r=>r.json()).then(d=>{if(d.active)show(main);else paywall.classList.remove('hidden')}) }
+</script></body></html>
